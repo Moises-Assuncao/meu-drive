@@ -455,6 +455,14 @@ zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add(
 zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
 zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
 
+function sanitizeFileName(name) {
+  // Remove acentos: ã→a, ç→c, é→e, etc.
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')  // tira acentos
+    .replace(/[^a-zA-Z0-9._\-]/g, '_'); // troca tudo que não é seguro por _
+}
+
 async function handleFiles(files) {
   if (!files.length) return;
   const progressEl = document.getElementById('upload-progress');
@@ -464,7 +472,8 @@ async function handleFiles(files) {
   let done = 0;
   for (const file of files) {
     statusEl.textContent = `Enviando ${file.name}...`;
-    const path = `${Date.now()}_${file.name}`;
+    const safeName = sanitizeFileName(file.name);
+    const path = `${Date.now()}_${safeName}`;
     const { error } = await sb.storage.from(BUCKET).upload(path, file);
     if (error) { showToast('Erro ao enviar: ' + file.name, 'error'); }
     else { done++; showToast(`${file.name} salvo!`, 'success'); }
